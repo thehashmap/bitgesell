@@ -12,7 +12,7 @@ export function DataProvider({ children }) {
     if (limit) queryParams.append("limit", limit);
     if (q) queryParams.append("q", q);
 
-    const url = `http://localhost:3001/api/items${
+    const url = `/api/items${
       queryParams.toString() ? "?" + queryParams.toString() : ""
     }`;
 
