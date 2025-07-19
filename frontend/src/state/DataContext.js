@@ -16,7 +16,8 @@ export function DataProvider({ children }) {
       queryParams.toString() ? "?" + queryParams.toString() : ""
     }`;
 
-    const res = await fetch(url, { signal });
+    const fetchOptions = signal ? { signal } : {};
+    const res = await fetch(url, fetchOptions);
     if (!res.ok) {
       throw new Error(`Failed to fetch items: ${res.status}`);
     }
@@ -24,13 +25,12 @@ export function DataProvider({ children }) {
     const json = await res.json();
 
     // Only update state if request wasn't aborted
-    if (!signal?.aborted) {
+    if (!signal || !signal.aborted) {
       setItems(json);
     }
 
     return json;
   }, []);
-
   return (
     <DataContext.Provider value={{ items, fetchItems, setItems }}>
       {children}
