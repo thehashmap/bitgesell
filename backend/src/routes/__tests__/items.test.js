@@ -114,6 +114,123 @@ describe("Items Routes", () => {
       expect(fs.writeFile).toHaveBeenCalled();
     });
 
+    it("should validate required name field", async () => {
+      const invalidItem = { category: "Test", price: 100 };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate name is not empty string", async () => {
+      const invalidItem = { name: "   ", category: "Test", price: 100 };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate name is string type", async () => {
+      const invalidItem = { name: 123, category: "Test", price: 100 };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate required category field", async () => {
+      const invalidItem = { name: "Test Product", price: 100 };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate category is not empty string", async () => {
+      const invalidItem = { name: "Test Product", category: "", price: 100 };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate required price field", async () => {
+      const invalidItem = { name: "Test Product", category: "Test" };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate price is number type", async () => {
+      const invalidItem = {
+        name: "Test Product",
+        category: "Test",
+        price: "100",
+      };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate price is non-negative", async () => {
+      const invalidItem = {
+        name: "Test Product",
+        category: "Test",
+        price: -10,
+      };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate name length limit", async () => {
+      const invalidItem = {
+        name: "A".repeat(101),
+        category: "Test",
+        price: 100,
+      };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate category length limit", async () => {
+      const invalidItem = {
+        name: "Test Product",
+        category: "A".repeat(51),
+        price: 100,
+      };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should validate price upper limit", async () => {
+      const invalidItem = {
+        name: "Test Product",
+        category: "Test",
+        price: 1000001,
+      };
+
+      await request(app).post("/api/items").send(invalidItem).expect(400);
+    });
+
+    it("should trim whitespace from name and category", async () => {
+      const newItem = {
+        name: "  Test Product  ",
+        category: "  Test  ",
+        price: 100,
+      };
+      fs.readFile.mockResolvedValue(JSON.stringify(mockItems));
+      fs.writeFile.mockResolvedValue();
+
+      const response = await request(app)
+        .post("/api/items")
+        .send(newItem)
+        .expect(201);
+
+      expect(response.body.name).toBe("Test Product");
+      expect(response.body.category).toBe("Test");
+    });
+
+    it("should round price to 2 decimal places", async () => {
+      const newItem = { name: "Test Product", category: "Test", price: 99.999 };
+      fs.readFile.mockResolvedValue(JSON.stringify(mockItems));
+      fs.writeFile.mockResolvedValue();
+
+      const response = await request(app)
+        .post("/api/items")
+        .send(newItem)
+        .expect(201);
+
+      expect(response.body.price).toBe(100);
+    });
+
     it("should handle write errors", async () => {
       const newItem = { name: "New Product", category: "Test", price: 100 };
       fs.readFile.mockResolvedValue(JSON.stringify(mockItems));

@@ -58,8 +58,68 @@ router.get("/:id", async (req, res, next) => {
 // POST /api/items
 router.post("/", async (req, res, next) => {
   try {
-    // TODO: Validate payload (intentional omission)
-    const item = req.body;
+    // Validate payload
+    const { name, category, price } = req.body;
+
+    // Check required fields
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
+      const err = new Error("Name is required and must be a non-empty string");
+      err.status = 400;
+      throw err;
+    }
+
+    if (
+      !category ||
+      typeof category !== "string" ||
+      category.trim().length === 0
+    ) {
+      const err = new Error(
+        "Category is required and must be a non-empty string"
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    if (
+      price === undefined ||
+      price === null ||
+      typeof price !== "number" ||
+      price < 0
+    ) {
+      const err = new Error(
+        "Price is required and must be a non-negative number"
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    // Validate field lengths
+    if (name.trim().length > 100) {
+      const err = new Error("Name must not exceed 100 characters");
+      err.status = 400;
+      throw err;
+    }
+
+    if (category.trim().length > 50) {
+      const err = new Error("Category must not exceed 50 characters");
+      err.status = 400;
+      throw err;
+    }
+
+    // Validate price range (reasonable limits)
+    if (price > 1000000) {
+      const err = new Error("Price must not exceed $1,000,000");
+      err.status = 400;
+      throw err;
+    }
+
+    // Create sanitized item object
+    const item = {
+      name: name.trim(),
+      category: category.trim(),
+      price: Math.round(price * 100) / 100, // Round to 2 decimal places
+    };
+
     const data = await readData();
     item.id = Date.now();
     data.push(item);
