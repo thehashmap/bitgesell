@@ -69,19 +69,3 @@ npm test
 cd frontend
 npm test
 ```
-
-## Troubleshooting
-
-### "Unexpected token '<'" Error
-
-This usually means:
-
-1. Backend server is not running
-2. Proxy configuration issue
-3. Wrong port configuration
-
-**Solution**:
-
-1. Ensure backend is running on port 3001
-2. Restart both backend and frontend servers
-3. Clear browser cache if needed
