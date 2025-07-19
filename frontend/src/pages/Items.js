@@ -1,19 +1,30 @@
-import React, { useEffect } from 'react';
-import { useData } from '../state/DataContext';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from "react";
+import { useData } from "../state/DataContext";
+import { Link } from "react-router-dom";
 
 function Items() {
   const { items, fetchItems } = useData();
 
   useEffect(() => {
-    let active = true;
+    const abortController = new AbortController();
 
-    // Intentional bug: setState called after component unmount if request is slow
-    fetchItems().catch(console.error);
+    // Fetch items with abort signal to prevent memory leaks
+    const loadItems = async () => {
+      try {
+        await fetchItems({ signal: abortController.signal });
+      } catch (error) {
+        // Only log error if request wasn't aborted (component still mounted)
+        if (!abortController.signal.aborted) {
+          console.error("Failed to fetch items:", error);
+        }
+      }
+    };
 
-    // Clean‑up to avoid memory leak (candidate should implement)
+    loadItems();
+
+    // Clean-up to avoid memory leak - abort the fetch request
     return () => {
-      active = false;
+      abortController.abort();
     };
   }, [fetchItems]);
 
@@ -21,9 +32,9 @@ function Items() {
 
   return (
     <ul>
-      {items.map(item => (
+      {items.map((item) => (
         <li key={item.id}>
-          <Link to={'/items/' + item.id}>{item.name}</Link>
+          <Link to={"/items/" + item.id}>{item.name}</Link>
         </li>
       ))}
     </ul>
