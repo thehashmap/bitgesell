@@ -1,23 +1,67 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const express = require("express");
+const fs = require("fs").promises;
+const path = require("path");
 const router = express.Router();
-const DATA_PATH = path.join(__dirname, '../../data/items.json');
+const DATA_PATH = path.join(__dirname, "../../../data/items.json");
+
+// Cache for stats with file watcher
+let statsCache = null;
+let cacheTimestamp = null;
+
+// Watch for file changes to invalidate cache
+fs.watch(path.dirname(DATA_PATH), (eventType, filename) => {
+  if (filename === "items.json") {
+    statsCache = null;
+    cacheTimestamp = null;
+    console.log("Stats cache invalidated due to file change");
+  }
+});
+
+async function calculateStats() {
+  try {
+    const raw = await fs.readFile(DATA_PATH, "utf8");
+    const items = JSON.parse(raw);
+
+    return {
+      total: items.length,
+      averagePrice:
+        items.length > 0
+          ? items.reduce((acc, cur) => acc + cur.price, 0) / items.length
+          : 0,
+      categories: [...new Set(items.map((item) => item.category))].length,
+      lastUpdated: new Date().toISOString(),
+    };
+  } catch (error) {
+    throw error;
+  }
+}
 
 // GET /api/stats
-router.get('/', (req, res, next) => {
-  fs.readFile(DATA_PATH, (err, raw) => {
-    if (err) return next(err);
+router.get("/", async (req, res, next) => {
+  try {
+    // Check if cache is valid (cache for 5 minutes or until file changes)
+    const now = Date.now();
+    const cacheValidDuration = 5 * 60 * 1000; // 5 minutes
 
-    const items = JSON.parse(raw);
-    // Intentional heavy CPU calculation
-    const stats = {
-      total: items.length,
-      averagePrice: items.reduce((acc, cur) => acc + cur.price, 0) / items.length
-    };
+    if (
+      statsCache &&
+      cacheTimestamp &&
+      now - cacheTimestamp < cacheValidDuration
+    ) {
+      return res.json({ ...statsCache, cached: true });
+    }
 
-    res.json(stats);
-  });
+    // Calculate fresh stats
+    const stats = await calculateStats();
+
+    // Update cache
+    statsCache = stats;
+    cacheTimestamp = now;
+
+    res.json({ ...stats, cached: false });
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;
